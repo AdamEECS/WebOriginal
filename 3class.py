@@ -1,21 +1,38 @@
-# 课 3 板书
+# 课 4 板书
 
-# MVC 设计模式
 """
-Model
-数据
+课 4 上课内容预习
+2016.8.15
 
-View
-视图
 
-Controller
-控制器
+本次上课的主要内容有
+
+cookie 是什么
+客户端和服务器怎么实现 cookie
+session 是什么
+session 有什么用
+客户端和服务器怎么实现 session
+
+model 类的详解
+如何管理重复的数据
+如何查找数据
+
 """
+"""
+POST /login HTTP/1.1
+Host: localhost:3000
+Connection: keep-alive
+Content-Length: 25
+Cache-Control: max-age=0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Origin: http://localhost:3000
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.111 Safari/537.36
+Content-Type: application/x-www-form-urlencoded
+Referer: http://localhost:3000/login
+Accept-Encoding: gzip, deflate
+Accept-Language: zh-CN,zh;q=0.8
+Cookie: Pycharm-7367d7d5=bf094603-b9e9-4994-9ebd-564f1f5ad2c0
 
-# 如何用 JSON 格式保存数据
-# JSON 就是一个存储 dict 或者 list 的数据格式
-# 是 dict 和 list 的字符串存储格式
-#
-# 把数据转换为字符串的过程叫做 序列化
-# 反之叫做 反序列化
-# JSON 是现在序列化 dict 或者 list 的一种通用格式
+username=gua&password=123
+"""
