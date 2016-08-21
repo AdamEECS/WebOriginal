@@ -1,6 +1,7 @@
 import json
 
 from utils import log
+import time
 
 
 def save(data, path):
@@ -41,6 +42,18 @@ class Model(object):
         return path
 
     @classmethod
+    def load(cls, d):
+        """
+        从保存的字典中生成对象
+        setattr(x, 'y', v) 相当于 x.y = v
+        """
+        m = cls({})
+        for k, v in d.items():
+            log('load', k, v)
+            setattr(m, k, v)
+        return m
+
+    @classmethod
     def all(cls):
         """
         all 方法(类里面的函数叫方法)使用 load 函数得到所有的 models
@@ -50,7 +63,7 @@ class Model(object):
         # 这里用了列表推导生成一个包含所有 实例 的 list
         # m 是 dict, 用 cls(m) 可以初始化一个 cls 的实例
         # 不明白就 log 大法看看这些都是啥
-        ms = [cls(m) for m in models]
+        ms = [cls.load(m) for m in models]
         return ms
 
     @classmethod
@@ -68,6 +81,23 @@ class Model(object):
             if v == m.__dict__[k]:
                 return m
         return None
+
+    @classmethod
+    def find_all(cls, **kwargs):
+        """
+        用法如下，kwargs 是只有一个元素的 dict
+        u = User.find_all(username='gua')
+        """
+        k, v = '', ''
+        for key, value in kwargs.items():
+            k, v = key, value
+        all = cls.all()
+        models = []
+        for m in all:
+            log('find all', m, k, v)
+            if v == m.__dict__[k]:
+                models.append(m)
+        return models
 
     @classmethod
     def find(cls, id):
@@ -117,6 +147,19 @@ class Model(object):
         path = self.db_path()
         save(l, path)
 
+    def delete(self):
+        models = self.all()
+        index = -1
+        for i, m in enumerate(models):
+            # log('debug', self, self.__dict__, m.__dict__)
+            if self.id == m.id:
+                index = i
+                break
+        del models[index]
+        l = [m.__dict__ for m in models]
+        path = self.db_path()
+        save(l, path)
+
 
 class User(Model):
     """
@@ -127,6 +170,7 @@ class User(Model):
         self.id = form.get('id', None)
         self.username = form.get('username', '')
         self.password = form.get('password', '')
+        self.note = form.get('note', '')
 
     def validate_login(self):
         # return self.username == 'gua' and self.password == '123'
@@ -147,22 +191,50 @@ class Message(Model):
         self.message = form.get('message', '')
 
 
+class Weibo(Model):
+    """
+    """
+    def __init__(self, form):
+        # id 是独一无二的一条数据
+        # 每个 model 都有自己的 id
+        self.id = form.get('id', None)
+        self.content = form.get('content', '')
+        # int(time.time()) 得到一个 unixtime
+        # unixtime 是现在通用的时间标准
+        # 它表示的是从 1970.1.1 到现在过去的秒数
+        # 因为 1970 年是 unix 操作系统创造的时间
+        self.created_time = int(time.time())
+        # 我们用 user_id 来标识这个微博是谁发的
+        # 初始化为 None
+        self.user_id = form.get('user_id', None)
+
+
+def test_weibo():
+    weibo_form = {
+        'content': '今天天气很好'
+    }
+    w = Weibo(weibo_form)
+    log(w.id, w.content, w.created_time)
+
+
 def test():
     # users = User.all()
     # u = User.find_by(username='gua')
     # log('users', u)
-    form = dict(
-        username='gua',
-        password='gua',
-    )
-    u = User(form)
-    u.save()
-    log('u.id', u.id)
-    u3 = User.find(3)
-    u3.password = '123 789'
-    u3.save()
-    log('u3', u3)
-    log(User.all())
+    # form = dict(
+    #     username='gua',
+    #     password='gua',
+    # )
+    # u = User(form)
+    # u.save()
+    # log('u.id', u.id)
+    # u3 = User.find(3)
+    # u3.password = '123 789'
+    # u3.save()
+    # log('u3', u3)
+    # log(User.all())
+    test_weibo()
+
 
 if __name__ == '__main__':
     test()

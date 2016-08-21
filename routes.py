@@ -2,12 +2,18 @@ from utils import log
 from models import Message
 from models import User
 
+from response import session
+from response import template
+from response import response_with_headers
+from response import redirect
+from response import error
+
 import random
 
 
 # 这个函数用来保存所有的 messages
 message_list = []
-session = {}
+
 
 
 def random_str():
@@ -17,15 +23,6 @@ def random_str():
         random_index = random.randint(0, len(seed) - 2)
         s += seed[random_index]
     return s
-
-
-def template(name):
-    """
-    根据名字读取 templates 文件夹里的一个文件并返回
-    """
-    path = 'templates/' + name
-    with open(path, 'r', encoding='utf-8') as f:
-        return f.read()
 
 
 def current_user(request):
@@ -39,22 +36,11 @@ def route_index(request):
     主页的处理函数, 返回主页的响应
     """
     header = 'HTTP/1.x 210 VERY OK\r\nContent-Type: text/html\r\n'
-    body = template('index.html')
     username = current_user(request)
-    body = body.replace('{{username}}', username)
+    body = template('index.html', username=username)
+    # body = body.replace('{{username}}', username)
     r = header + '\r\n' + body
     return r.encode(encoding='utf-8')
-
-
-def response_with_headers(headers, status_code=200):
-    """
-Content-Type: text/html
-Set-Cookie: user=gua
-    """
-    header = 'HTTP/1.x {} VERYOK\r\n'.format(status_code)
-    header += ''.join(['{}: {}\r\n'.format(k, v)
-                           for k, v in headers.items()])
-    return header
 
 
 def route_login(request):
@@ -76,13 +62,14 @@ def route_login(request):
             session[session_id] = u.username
             headers['Set-Cookie'] = 'user={}'.format(session_id)
             result = '登录成功'
+            # return redirect('/weibo/new')
         else:
             result = '用户名或者密码错误'
     else:
         result = ''
-    body = template('login.html')
-    body = body.replace('{{result}}', result)
-    body = body.replace('{{username}}', username)
+    body = template('login.html',
+                    result=result,
+                    username=username)
     header = response_with_headers(headers)
     r = header + '\r\n' + body
     # log('login', r)
@@ -104,8 +91,7 @@ def route_register(request):
             result = '用户名或者密码长度必须大于2'
     else:
         result = ''
-    body = template('register.html')
-    body = body.replace('{{result}}', result)
+    body = template('register.html', result=result)
     r = header + '\r\n' + body
     return r.encode(encoding='utf-8')
 
@@ -123,25 +109,34 @@ def route_message(request):
     log('本次请求的 method', request.method)
     username = current_user(request)
     log('username', username)
-    if username == '游客':
-        # 没登录 不让看 重定向到 /
-        headers['Location'] = '/'
-        header = response_with_headers(headers, 302)
-        r = header + '\r\n' + ''
-        return r.encode(encoding='utf-8')
-        # return redirect('/')
-    else:
-        header = response_with_headers(headers)
+    header = response_with_headers(headers)
     if request.method == 'POST':
         form = request.form()
         msg = Message(form)
         log('post', form)
         message_list.append(msg)
         # 应该在这里保存 message_list
-    # body = '<h1>消息版</h1>'
-    body = template('html_basic.html')
     msgs = '<br>'.join([str(m) for m in message_list])
-    body = body.replace('{{messages}}', msgs)
+    body = template('html_basic.html', messages=msgs)
+    r = header + '\r\n' + body
+    return r.encode(encoding='utf-8')
+
+
+def route_profile(request):
+    """
+    如果登录了, 则返回一个页面显示用户的
+    三项资料(id, username, note)
+    """
+    headers = {
+        'Content-Type': 'text/html',
+    }
+    username = current_user(request)
+    header = response_with_headers(headers)
+    user = User.find_by(username=username)
+    body = template('profile.html',
+                    id=user.id,
+                    username=user.username,
+                    note=user.note)
     r = header + '\r\n' + body
     return r.encode(encoding='utf-8')
 
@@ -158,6 +153,18 @@ def route_static(request):
         return img
 
 
+# 定义一个函数统一检测是否登录
+def login_required(route_function):
+    def func(request):
+        username = current_user(request)
+        log('登录鉴定', username)
+        if username == '游客':
+            # 没登录 不让看 重定向到 /login
+            return redirect('/login')
+        return route_function(request)
+    return func
+
+
 # 路由字典
 # key 是路由(路由就是 path)
 # value 是路由处理函数(就是响应)
@@ -165,5 +172,10 @@ route_dict = {
     '/': route_index,
     '/login': route_login,
     '/register': route_register,
-    '/messages': route_message,
+    '/messages': login_required(route_message),
+    '/profile': login_required(route_profile),
+    # '/weibo': route_weibo_index,
+    # '/weibo/new': login_required(route_weibo_new),
+    # '/weibo/add': login_required(route_weibo_add),
+    # '/weibo/delete': login_required(route_weibo_delete),
 }

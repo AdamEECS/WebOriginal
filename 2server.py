@@ -28,8 +28,10 @@ import urllib.parse
 from utils import log
 
 from routes import route_static
-from routes import route_dict
 
+# 导入 路由函数
+from routes import route_dict as route_dict_main
+from routes_weibo import route_dict as route_dict_weibo
 
 # 定义一个 class 用于保存请求的数据
 class Request(object):
@@ -129,7 +131,9 @@ def response_for_path(path):
         # '/login': route_login,
         # '/messages': route_message,
     }
-    r.update(route_dict)
+    r.update(route_dict_main)
+    r.update(route_dict_weibo)
+    # register_routes(route_dict_weibo, prefix='/weibo')
     response = r.get(path, error)
     return response(request)
 
