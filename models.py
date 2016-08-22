@@ -30,6 +30,7 @@ class Model(object):
     user = User()
     user.db_path() 返回 User.txt
     """
+
     @classmethod
     def db_path(cls):
         """
@@ -166,6 +167,7 @@ class User(Model):
     User 是一个保存用户数据的 model
     现在只有两个属性 username 和 password
     """
+
     def __init__(self, form):
         self.id = form.get('id', None)
         self.username = form.get('username', '')
@@ -185,6 +187,7 @@ class Message(Model):
     """
     Message 是用来保存留言的 model
     """
+
     def __init__(self, form):
         self.id = None
         self.author = form.get('author', '')
@@ -194,6 +197,7 @@ class Message(Model):
 class Weibo(Model):
     """
     """
+
     def __init__(self, form):
         # id 是独一无二的一条数据
         # 每个 model 都有自己的 id
@@ -207,6 +211,17 @@ class Weibo(Model):
         # 我们用 user_id 来标识这个微博是谁发的
         # 初始化为 None
         self.user_id = form.get('user_id', None)
+
+    def update(self):
+        models = self.all()
+        for m in models:
+            if int(self.id) == m.id:
+                m.content = self.content
+                m.created_time = self.created_time
+                break
+        l = [m.__dict__ for m in models]
+        path = self.db_path()
+        save(l, path)
 
 
 def test_weibo():
