@@ -8,14 +8,12 @@ from response import redirect
 from response import error
 
 from utils import log
-import time
 
 
 def current_user(request):
     session_id = request.cookies.get('user', '')
     username = session.get(session_id, '游客')
     return username
-
 
 # 微博相关页面
 def route_weibo_index(request):
@@ -37,15 +35,12 @@ def route_weibo_index(request):
     weibos = Weibo.find_all(user_id=user_id)
     log('weibos', weibos)
     def weibo_tag(weibo):
-        return '<p>{} from {}@{} <a href="/weibo/edit?id={}">编辑</a> ' \
-               '<a href="/weibo/delete?id={}">删除</a></p>'.format(
+        return '<p>{} from {}@{} <a href="/weibo/delete?id={}">删除</a></p>'.format(
             weibo.content,
             user.username,
-            time.strftime('%Y/%m/%d %H:%M:%S', time.localtime(weibo.created_time)),
-            weibo.id,
+            weibo.created_time,
             weibo.id,
         )
-
     weibos = '\n'.join([weibo_tag(w) for w in weibos])
     body = template('weibo_index.html', weibos=weibos)
     r = header + '\r\n' + body
@@ -94,33 +89,6 @@ def route_weibo_delete(request):
     return redirect('/weibo?user_id={}'.format(user.id))
 
 
-def route_weibo_edit(request):
-    headers = {
-        'Content-Type': 'text/html',
-    }
-    username = current_user(request)
-    header = response_with_headers(headers)
-    user = User.find_by(username=username)
-    weibo_id = request.query.get('id', None)
-    body = template('weibo_update.html', weibo_id=weibo_id)
-    r = header + '\r\n' + body
-    return r.encode(encoding='utf-8')
-
-
-def route_weibo_update(request):
-    headers = {
-        'Content-Type': 'text/html',
-    }
-    username = current_user(request)
-    header = response_with_headers(headers)
-    user = User.find_by(username=username)
-    form = request.form()
-    w = Weibo(form)
-    log('update test', w)
-
-    w.update()
-    return redirect('/weibo?user_id={}'.format(user.id))
-
 
 # 定义一个函数统一检测是否登录
 def login_required(route_function):
@@ -131,7 +99,6 @@ def login_required(route_function):
             # 没登录 不让看 重定向到 /login
             return redirect('/login')
         return route_function(request)
-
     return func
 
 
@@ -140,6 +107,4 @@ route_dict = {
     '/weibo/new': login_required(route_weibo_new),
     '/weibo/add': login_required(route_weibo_add),
     '/weibo/delete': login_required(route_weibo_delete),
-    '/weibo/edit': login_required(route_weibo_edit),
-    '/weibo/update': login_required(route_weibo_update),
 }
