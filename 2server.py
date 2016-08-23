@@ -32,6 +32,7 @@ from routes import route_static
 # 导入 路由函数
 from routes import route_dict as route_dict_main
 from routes_weibo import route_dict as route_dict_weibo
+from routes_todo import route_dict as route_dict_todo
 
 # 定义一个 class 用于保存请求的数据
 class Request(object):
@@ -133,6 +134,7 @@ def response_for_path(path):
     }
     r.update(route_dict_main)
     r.update(route_dict_weibo)
+    r.update(route_dict_todo)
     # register_routes(route_dict_weibo, prefix='/weibo')
     response = r.get(path, error)
     return response(request)

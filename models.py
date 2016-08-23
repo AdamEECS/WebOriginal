@@ -38,7 +38,7 @@ class Model(object):
         所以我们可以得到 class 的名字
         """
         classname = cls.__name__
-        path = '{}.txt'.format(classname)
+        path = 'db/{}.txt'.format(classname)
         return path
 
     @classmethod
@@ -93,10 +93,11 @@ class Model(object):
             k, v = key, value
         all = cls.all()
         models = []
-        for m in all:
-            log('find all', m, k, v)
-            if v == m.__dict__[k]:
-                models.append(m)
+        if k != '':
+            for m in all:
+                log('find all', m, k, v)
+                if v == m.__dict__[k]:
+                    models.append(m)
         return models
 
     @classmethod
@@ -207,6 +208,24 @@ class Weibo(Model):
         # 我们用 user_id 来标识这个微博是谁发的
         # 初始化为 None
         self.user_id = form.get('user_id', None)
+
+
+class Todo(Model):
+    """
+    """
+    def __init__(self, form):
+        # id 是独一无二的一条数据
+        # 每个 model 都有自己的 id
+        self.id = form.get('id', None)
+        self.created_time = int(time.time())
+        self.content = form.get('content', '')
+        self.complete = False
+
+    def toggleComplete(self):
+        self.complete = not self.complete
+
+    def status(self):
+        return 'status-done' if self.complete else 'status-active'
 
 
 def test_weibo():
