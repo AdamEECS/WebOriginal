@@ -194,7 +194,7 @@ class Message(Model):
 
 class Weibo(Model):
     """
-    
+
     """
     def __init__(self, form):
         # id 是独一无二的一条数据
