@@ -1,109 +1,21 @@
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+
+import time
 import json
 
-from utils import log
-import time
+
+# 以下都是套路
+app = Flask(__name__)
+app.secret_key = 'secret key'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
+# 指定数据库的路径
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///todos.db'
+
+db = SQLAlchemy(app)
 
 
-def save(data, path):
-    """
-    data 是 dict 或者 list
-    path 是保存文件的路径
-    """
-    s = json.dumps(data, indent=2, ensure_ascii=False)
-    with open(path, 'w+', encoding='utf-8') as f:
-        # log('save', path, s, data)
-        f.write(s)
-
-
-def load(path):
-    with open(path, 'r', encoding='utf-8') as f:
-        s = f.read()
-        # log('load', s)
-        return json.loads(s)
-
-
-class Model(object):
-    """
-    Model 是所有 model 的基类
-    @classmethod 是一个套路用法
-    例如
-    user = User()
-    user.db_path() 返回 User.txt
-    """
-    @classmethod
-    def db_path(cls):
-        """
-        cls 是类名, 谁调用的类名就是谁的
-        classmethod 有一个参数是 class(这里我们用 cls 这个名字)
-        所以我们可以得到 class 的名字
-        """
-        classname = cls.__name__
-        path = 'db/{}.txt'.format(classname)
-        return path
-
-    @classmethod
-    def load(cls, d):
-        """
-        从保存的字典中生成对象
-        setattr(x, 'y', v) 相当于 x.y = v
-        """
-        m = cls({})
-        for k, v in d.items():
-            log('load', k, v)
-            setattr(m, k, v)
-        return m
-
-    @classmethod
-    def all(cls):
-        """
-        all 方法(类里面的函数叫方法)使用 load 函数得到所有的 models
-        """
-        path = cls.db_path()
-        models = load(path)
-        # 这里用了列表推导生成一个包含所有 实例 的 list
-        # m 是 dict, 用 cls(m) 可以初始化一个 cls 的实例
-        # 不明白就 log 大法看看这些都是啥
-        ms = [cls.load(m) for m in models]
-        return ms
-
-    @classmethod
-    def find_by(cls, **kwargs):
-        """
-        用法如下，kwargs 是只有一个元素的 dict
-        u = User.find_by(username='gua')
-        """
-        log('kwargs, ', kwargs)
-        k, v = '', ''
-        for key, value in kwargs.items():
-            k, v = key, value
-        all = cls.all()
-        for m in all:
-            if v == m.__dict__[k]:
-                return m
-        return None
-
-    @classmethod
-    def find_all(cls, **kwargs):
-        """
-        用法如下，kwargs 是只有一个元素的 dict
-        u = User.find_all(username='gua')
-        """
-        k, v = '', ''
-        for key, value in kwargs.items():
-            k, v = key, value
-        all = cls.all()
-        models = []
-        if k != '':
-            for m in all:
-                log('find all', m, k, v)
-                if v == m.__dict__[k]:
-                    models.append(m)
-        return models
-
-    @classmethod
-    def find(cls, id):
-        return cls.find_by(id=id)
-
+class ModelHelper(object):
     def __repr__(self):
         """
         __repr__ 是一个魔法方法
@@ -116,145 +28,136 @@ class Model(object):
         return '< {}\n{} \n>\n'.format(classname, s)
 
     def save(self):
-        """
-        用 all 方法读取文件中的所有 model 并生成一个 list
-        把 self 添加进去并且保存进文件
-        """
-        # log('debug save')
-        models = self.all()
-        # log('models', models)
-        # 如果没有 id，说明是新添加的元素
-        if self.id is None:
-            # 设置 self.id
-            # 先看看是否是空 list
-            if len(models) == 0:
-                # 我们让第一个元素的 id 为 1（当然也可以为 0）
-                self.id = 1
-            else:
-                m = models[-1]
-                # log('m', m)
-                self.id = m.id + 1
-            models.append(self)
-        else:
-            # index = self.find(self.id)
-            index = -1
-            for i, m in enumerate(models):
-                if m.id == self.id:
-                    index = i
-                    break
-            log('debug', index)
-            models[index] = self
-        l = [m.__dict__ for m in models]
-        path = self.db_path()
-        save(l, path)
+        db.session.add(self)
+        db.session.commit()
 
     def delete(self):
-        models = self.all()
-        index = -1
-        for i, m in enumerate(models):
-            # log('debug', self, self.__dict__, m.__dict__)
-            if self.id == m.id:
-                index = i
-                break
-        del models[index]
-        l = [m.__dict__ for m in models]
-        path = self.db_path()
-        save(l, path)
+        db.session.delete(self)
+        db.session.commit()
 
 
-class User(Model):
-    """
-    User 是一个保存用户数据的 model
-    现在只有两个属性 username 和 password
-    """
+# 定义一个 Model，继承自 db.Model
+class Todo(db.Model, ModelHelper):
+    __tablename__ = 'todos'
+    # 下面是字段定义
+    id = db.Column(db.Integer, primary_key=True)
+    task = db.Column(db.String())
+    created_time = db.Column(db.Integer, default=0)
+    # 定义关系
+    user_id = db.Column(db.Integer)
+
     def __init__(self, form):
-        self.id = form.get('id', None)
+        self.task = form.get('task', '')
+        self.created_time = int(time.time())
+
+    def valid(self):
+        return len(self.task) > 0
+
+
+# 定义一个 Model，继承自 db.Model
+class Weibo(db.Model, ModelHelper):
+    __tablename__ = 'weibos'
+    # 下面是字段定义
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.String())
+    created_time = db.Column(db.Integer, default=0)
+    # 定义关系
+    user_id = db.Column(db.Integer)
+
+    def __init__(self, form):
+        self.content = form.get('content', '')
+        self.created_time = int(time.time())
+        self.comments = []
+
+    def load_comments(self):
+        self.comments = Comment.query.filter_by(weibo_id=self.id).all()
+
+
+class Comment(db.Model, ModelHelper):
+    __tablename__ = 'comments'
+    # 下面是字段定义
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.String())
+    created_time = db.Column(db.Integer, default=0)
+    # 定义关系
+    user_id = db.Column(db.Integer)
+    weibo_id = db.Column(db.Integer)
+
+    def __init__(self, form):
+        self.content = form.get('content', '')
+        self.created_time = int(time.time())
+
+    def json(self):
+        d = {
+            'id': self.id,
+            'content': self.content,
+            'created_time': self.created_time,
+            'weibo_id': self.weibo_id,
+            'user_id': self.user_id,
+        }
+        return json.dumps(d, ensure_ascii=False)
+
+
+class User(db.Model, ModelHelper):
+    __tablename__ = 'users'
+    # 下面是字段定义
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String())
+    password = db.Column(db.String())
+    created_time = db.Column(db.Integer, default=0)
+
+    def __init__(self, form):
         self.username = form.get('username', '')
         self.password = form.get('password', '')
-        self.note = form.get('note', '')
+        self.created_time = int(time.time())
 
-    def validate_login(self):
-        # return self.username == 'gua' and self.password == '123'
-        u = User.find_by(username=self.username)
-        return u is not None and u.password == self.password
+    def weibos(self):
+        ws = Weibo.query.filter_by(user_id=self.id).all()
+        return ws
 
-    def validate_register(self):
+    def valid(self):
         return len(self.username) > 2 and len(self.password) > 2
 
+    def validate_login(self, u):
+        return u is not None and u.username == self.username and u.password == self.password
 
-class Message(Model):
-    """
-    Message 是用来保存留言的 model
-    """
-    def __init__(self, form):
-        self.id = None
-        self.author = form.get('author', '')
-        self.message = form.get('message', '')
-
-
-class Weibo(Model):
-    """
-
-    """
-    def __init__(self, form):
-        # id 是独一无二的一条数据
-        # 每个 model 都有自己的 id
-        self.id = form.get('id', None)
-        self.content = form.get('content', '')
-        # int(time.time()) 得到一个 unixtime
-        # unixtime 是现在通用的时间标准
-        # 它表示的是从 1970.1.1 到现在过去的秒数
-        # 因为 1970 年是 unix 操作系统创造的时间
-        self.created_time = int(time.time())
-        # 我们用 user_id 来标识这个微博是谁发的
-        # 初始化为 None
-        self.user_id = form.get('user_id', None)
+    def change_password(self, password):
+        if len(password) > 2:
+            self.password = password
+            self.save()
+            return True
+        else:
+            return False
 
 
-class Todo(Model):
-    """
-    """
-    def __init__(self, form):
-        # id 是独一无二的一条数据
-        # 每个 model 都有自己的 id
-        self.id = form.get('id', None)
-        self.created_time = int(time.time())
-        self.content = form.get('content', '')
-        self.complete = False
-
-    def toggleComplete(self):
-        self.complete = not self.complete
-
-    def status(self):
-        return 'status-done' if self.complete else 'status-active'
-
-
-def test_weibo():
-    weibo_form = {
-        'content': '今天天气很好'
-    }
-    w = Weibo(weibo_form)
-    log(w.id, w.content, w.created_time)
-
-
-def test():
-    # users = User.all()
-    # u = User.find_by(username='gua')
-    # log('users', u)
-    # form = dict(
-    #     username='gua',
-    #     password='gua',
-    # )
-    # u = User(form)
-    # u.save()
-    # log('u.id', u.id)
-    # u3 = User.find(3)
-    # u3.password = '123 789'
-    # u3.save()
-    # log('u3', u3)
-    # log(User.all())
-    test_weibo()
+def init_db():
+    # 先 drop_all 删除所有数据库中的表
+    # 再 create_all 创建所有的表
+    db.drop_all()
+    db.create_all()
+    print('rebuild database')
 
 
 if __name__ == '__main__':
-    test()
+    init_db()
+    """
+    select * from users where id=1
+
+    update users set password='pwd' where id=1
+
+    SELECT
+        todos.id AS todos_id,
+        todos.task AS todos_task,
+        todos.created_time AS todos_created_time,
+        todos.user_id AS todos_user_id
+    FROM
+        todos
+    WHERE
+        todos.user_id = :user_id_1
+    """
+    # u = User.query.get(1)
+    # # u.password = 'pwd'
+    # # u.save()
+    # print('sql', Todo.query.filter_by(user_id=u.id))
+    # ts = Todo.query.filter_by(user_id=u.id).all()
+    # print('todos', ts)

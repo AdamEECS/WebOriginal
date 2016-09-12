@@ -1,12 +1,19 @@
 # web 14 数据库
 # 2016/9/7
 #
-# 数据库现在分 关系型数据库 和 NoSQL（比如 mongodb） 和 一些畸形数据库（比如fb的图数据库）
+
+"""
+数据库是应用最广泛的计算机软件
+
+"""
+
+# 数据库现在分 关系型数据库 和 NoSQL（比如 mongodb） 和
+# 一些其他数据库（比如fb的图数据库）
 # 本课只讲 关系型数据库
-# 常用的关系型数据库有 mysql postgresql sqlite 等（具体区别上课再说）
+# 常用的关系型数据库有 MySQL postgresql sqlite 等（具体区别上课再说）
 #
 # 数据库以表的形式存储数据
-# 一个表可以有很多个字段
+# 一张表可以有很多个字段
 
 # 以用户表为例, 存储 4 个数据的表结构如下
 # 用户 id
@@ -105,6 +112,14 @@ def delete(conn, user_id):
 
 
 def update(conn, user_id, email):
+    """
+    UPDATE
+        `users`
+    SET
+        `email`='gua', `username`='瓜'
+    WHERE
+        `id`=6
+    """
     sql_update = '''
     UPDATE
         `users`
@@ -118,17 +133,17 @@ def update(conn, user_id, email):
 
 def main():
     # 指定数据库名字并打开
-    db_path = 'class6.sqlite'
+    db_path = 'demo.sqlite'
     conn = sqlite3.connect(db_path)
     print("打开了数据库")
     # 打开数据库后 就可以用 create 函数创建表
-    # create()
+    # create(conn)
     # 然后可以用 insert 函数插入数据
-    # insert(conn, 'sql', '123', '')
+    insert(conn, 'sql4', '1234', 'a@b.c')
     # 可以用 delete 函数删除数据
-    # delete(conn, 1)
+    delete(conn, 1)
     # 可以用 update 函数更新数据
-    update(conn, 1, 'gua@cocode.cc')
+    # update(conn, 1, 'gua@cocode.cc')
     # select 函数查询数据
     select(conn)
     # 必须用 commit 函数提交你的修改
