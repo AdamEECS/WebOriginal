@@ -38,3 +38,17 @@ def comment_add():
     else:
         abort(401)
 
+
+@main.route('/weibo/add', methods=['POST'])
+def weibo_add():
+    u = current_user()
+    if u is not None:
+        print('weibo_add', u.id, u.username)
+        form = request.form
+        c = Comment(form)
+        c.user_id = u.id
+        c.weibo_id = int(form.get('weibo_id', -1))
+        c.save()
+        return=/ c.json()
+    else:
+        abort(401)
