@@ -18,7 +18,6 @@ from user import current_user
 # 第一个参数是蓝图的名字，第二个参数是套路
 main = Blueprint('api', __name__)
 
-
 # /api/weibo/add
 @main.route('/weibo/add', methods=['POST'])
 def add():
