@@ -1,12 +1,10 @@
 // window.onload = main;
-
-
 var log = function() {
   console.log(arguments)
 }
 
 var weiboTemplate = function(weibo) {
-  var w = weibo 
+  var w = weibo
   var t = `
     <div class="weibo-cell cell item">
       <img src="${ w.avatar }" class="avatar">
