@@ -1,4 +1,3 @@
-
 var api = {}
 
 api.ajax = function(url, method, form, success, error) {
