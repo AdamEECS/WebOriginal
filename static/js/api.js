@@ -13,7 +13,7 @@ api.ajax = function(url, method, form, success, error) {
       log('网络错误', error)
       var r = {
         'success': false,
-        message: '网 络 错 误'
+        message: '网络错误'
       }
       error(r)
     }
