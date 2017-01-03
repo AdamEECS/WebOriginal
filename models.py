@@ -15,8 +15,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///todos.db'
 db = SQLAlchemy(app)
 
 
-# 定义一个 Model，继承自 db.Model
-
 class ModelHelper(object):
     def __repr__(self):
         """
